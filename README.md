@@ -1,6 +1,6 @@
 ## Automate Driving Behaviour
 
-<img src="https://github.com/abhipn/Automate-Driving-Behaviour/blob/master/visualize.gif" height="680" width="420">
+<img src="https://github.com/abhipn/Automate-Driving-Behaviour/blob/master/visualize.gif" height="420" width="680">
 
 ### Project Description
 In this project, I've used convolutional neural networks to clone driving behavior. This model will output a steering angle to an autonomous vehicle. A lot of inspiraion for this model was taken from [Udacity Self driving car](https://github.com/udacity/CarND-Behavioral-Cloning-P3) module as well [End to End Learning for Self-Driving Cars](https://devblogs.nvidia.com/deep-learning-self-driving-cars/) model from NVIDIA.
