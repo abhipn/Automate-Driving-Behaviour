@@ -1,4 +1,4 @@
-## Automate Driving Behaviour
+## Automate Driving Behaviour [![](https://img.shields.io/github/license/sourcerer-io/hall-of-fame.svg?colorB=ff0000)](https://github.com/abhipn/Automate-Driving-Behaviour/blob/master/LICENSE.txt)
 
 <img src="https://github.com/abhipn/Automate-Driving-Behaviour/blob/master/visualize.gif" height="420" width="680">
 
