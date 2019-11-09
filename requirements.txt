@@ -1,0 +1,5 @@
+scikit-image
+tensorflow-gpu
+pandas
+numpy
+opencv
