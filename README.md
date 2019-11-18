@@ -3,7 +3,7 @@
 <img src="https://github.com/abhipn/Automate-Driving-Behaviour/blob/master/visualize.gif" height="420" width="680">
 
 ### Project Description
-In this project, I've used convolutional neural networks to clone driving behavior. This model will output a steering angle to an autonomous vehicle. A lot of inspiraion for this model was taken from [Udacity Self driving car](https://github.com/udacity/CarND-Behavioral-Cloning-P3) module as well [End to End Learning for Self-Driving Cars](https://devblogs.nvidia.com/deep-learning-self-driving-cars/) model from NVIDIA.
+In this project, I've used convolutional neural networks for cloning driving behavior. This model will output a steering angle to an autonomous vehicle. A lot of inspiraion for this model was taken from [Udacity Self driving car](https://github.com/udacity/CarND-Behavioral-Cloning-P3) module as well [End to End Learning for Self-Driving Cars](https://devblogs.nvidia.com/deep-learning-self-driving-cars/) model from NVIDIA.
 
 ### Dataset 
 Approximately 63,000 images, 3.1GB. Data was recorded by [SullyChen](https://github.com/SullyChen/) around Rancho Palos Verdes and San Pedro California.
@@ -34,22 +34,22 @@ Here's the architecture of the model,
 |block2_conv1 (Conv2D)       | (None, 33, 100, 128)     | 73856      |
 |block2_conv2 (Conv2D)       | (None, 33, 100, 128)     | 147584     |
 |block2_pool (MaxPooling2D)  | (None, 16, 50, 128)      | 0          |
-|conv2d (Conv2D)             | (None, 5, 22, 512)       | 3211776    |
-|conv2d_1 (Conv2D)           | (None, 1, 18, 256)       | 3277056    |
-|dropout (Dropout)           | (None, 1, 18, 256)       | 0          |
-|flatten (Flatten)           | (None, 4608)             | 0          |
-|dense (Dense)               | (None, 256)              | 1179904    |
+|conv2d (Conv2D)             | (None, 6, 23, 256)       | 819456     |
+|conv2d_1 (Conv2D)           | (None, 4, 21, 128)       | 295040     |
+|dropout (Dropout)           | (None, 4, 21, 128)       | 0          |
+|flatten (Flatten)           | (None, 10752)            | 0          |
+|dense (Dense)               | (None, 256)              | 2752768    |
 |dense_1 (Dense)             | (None, 128)              | 32896      |
 |dense_2 (Dense)             | (None, 64)               | 8256       |
 |dense_3 (Dense)             | (None, 1)                | 65         |
-|                            |**Total params**          |7,970,113   |
+|                            |**Total params**          |4,168,641   |
 
 
 ### Quick Start
 
 1) First, install all the required dependencies from `requirements.txt` then download and extract the dataset into the main directory.
-2) Now run `python train_model.py`for training the model. This will output a file `model-best.h5` (i.e epoch with least MSE on validation set).
-3) Then test it on test set `python visualize.py` and visualize the results. 
+2) Now run `python train_model.py`for training the model. After N-Epoch successful training, this will output a file `model-best.h5` (i.e epoch with least MSE on validation set).
+3) Then test and visualize it on test set with `python visualize.py`.
 
 ### References:
  
