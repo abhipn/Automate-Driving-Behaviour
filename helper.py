@@ -1,7 +1,7 @@
 # libraries
 import numpy as np
 import os, cv2
-from skimage import io
+from skimage.io import imread
 from tensorflow.keras.utils import Sequence
 
 
@@ -10,8 +10,9 @@ data_dir = 'data'
 
 n_images = len(np.sort(os.listdir(data_dir)))
 
-TRAIN_IMAGES = int(n_images*0.8)
-TEST_IMAGES = int(n_images*0.2)
+TRAIN_IMAGES = int(n_images*0.85)
+DEV_IMAGES = int(n_images*0.075)
+TEST_IMAGES = int(n_images*0.075)
 
 IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 66, 200, 3
 INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
@@ -21,13 +22,13 @@ INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
 ## image preprocessing steps
 
 def load_image(data_dir, image_file):
-    return io.imread(os.path.join(data_dir, image_file))
+    return imread(os.path.join(data_dir, image_file))
 
 def crop(image):
     """
     Crop the image (removing the sky at the top and the car front at the bottom)
     """
-    return image[60:-25, :, :]
+    return image[105:-5, :, :]
 
 def resize(image):
     """
@@ -42,30 +43,36 @@ def preprocess_image(image):
 
 
 ## Data Augumentation
-def random_flip(image, steering_angle):
-    """
-    Randomly flipt the image left <-> right, and adjust the steering angle.
-    """
-    if np.random.rand() < 0.5:
-        image = cv2.flip(image, 1)
-        steering_angle = -steering_angle
-    return image, steering_angle
-
 def random_brightness(image):
     """
-    Randomly adjust brightness of the image.
+    Randomly adjust brightness of the image
     """
-    # HSV (Hue, Saturation, Value) is also called HSB ('B' for Brightness).
-    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-    ratio = 1.0 + 0.4 * (np.random.rand() - 0.5)
-    hsv[:, :, 2] =  hsv[:, :, 2] * ratio
-    return cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
+    coeff = 2* np.random.uniform(0,1) 
+    image_HLS = cv2.cvtColor(image,cv2.COLOR_RGB2HLS) 
+    image_HLS = np.array(image_HLS, dtype = np.float64) 
+    image_HLS[:,:,1] = image_HLS[:,:,1]*coeff 
+    if(coeff>1):
+        image_HLS[:,:,1][image_HLS[:,:,1]>255]  = 255 
+    else:
+        image_HLS[:,:,1][image_HLS[:,:,1]<0]=0
+    image_HLS = np.array(image_HLS, dtype = np.uint8)
+    image_RGB = cv2.cvtColor(image_HLS,cv2.COLOR_HLS2RGB)
+    return image_RGB
 
 
-def random_translate(image, steering_angle, range_x, range_y):
+def random_flip(image, steering_angle):
+    """
+    Randomly flip the image left <-> right, and adjust the steering angle.
+    """
+    image = cv2.flip(image, 1)
+    steering_angle = -steering_angle
+    return image, steering_angle
+
+def random_translate(image, steering_angle):
     """
     Randomly shift the image virtially and horizontally (translation).
     """
+    range_x, range_y = np.random.randint(10, 100), np.random.randint(10, 60)
     trans_x = range_x * (np.random.rand() - 0.5)
     trans_y = range_y * (np.random.rand() - 0.5)
     steering_angle += trans_x * 0.002
@@ -74,53 +81,60 @@ def random_translate(image, steering_angle, range_x, range_y):
     image = cv2.warpAffine(image, trans_m, (width, height))
     return image, steering_angle
 
-def random_shadow(image):
+    
+def random_shadow(image, no_of_shadows=1):
     """
-    Generates and adds random shadow
+    Randomly add polygon shaped shadows to the image
     """
-    # (x1, y1) and (x2, y2) forms a line
-    # xm, ym gives all the locations of the image
-    x1, y1 = IMAGE_WIDTH * np.random.rand(), 0
-    x2, y2 = IMAGE_WIDTH * np.random.rand(), IMAGE_HEIGHT
-    xm, ym = np.mgrid[0:IMAGE_HEIGHT, 0:IMAGE_WIDTH]
+    image_HLS = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
+    mask = np.zeros_like(image)     
+    imshape = image.shape    
+    vertices_list= generate_shadow_coordinates(imshape, no_of_shadows)  
+    for vertices in vertices_list:         
+        cv2.fillPoly(mask, vertices, 255)    
+        image_HLS[:,:,1][mask[:,:,0]==255] = image_HLS[:,:,1][mask[:,:,0]==255]*0.5     
+        image_RGB = cv2.cvtColor(image_HLS, cv2.COLOR_HLS2RGB)
+    return image_RGB
 
-    # mathematically speaking, we want to set 1 below the line and zero otherwise
-    # Our coordinate is up side down.  So, the above the line: 
-    # (ym-y1)/(xm-x1) > (y2-y1)/(x2-x1)
-    # as x2 == x1 causes zero-division problem, we'll write it in the below form:
-    # (ym-y1)*(x2-x1) - (y2-y1)*(xm-x1) > 0
-    mask = np.zeros_like(image[:, :, 1])
-    mask[(ym - y1) * (x2 - x1) - (y2 - y1) * (xm - x1) > 0] = 1
-
-    # choose which side should have shadow and adjust saturation
-    cond = mask == np.random.randint(2)
-    s_ratio = np.random.uniform(low=0.2, high=0.5)
-
-    # adjust Saturation in HLS(Hue, Light, Saturation)
-    hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
-    hls[:, :, 1][cond] = hls[:, :, 1][cond] * s_ratio
-    return cv2.cvtColor(hls, cv2.COLOR_HLS2RGB)
-
-def augument(image, steering_angle, range_x=65, range_y=10):
+def generate_shadow_coordinates(imshape, no_of_shadows=1):
     """
-    Generate an augumented image
+    Helper function for above add_shadow main function
     """
-    image, steering_angle = random_flip(image, steering_angle)
-    image, steering_angle = random_translate(image, steering_angle, range_x, range_y)
-    image = random_shadow(image)
-    image = random_brightness(image)
+    vertices_list=[]    
+    for index in range(no_of_shadows):        
+        vertex=[]        
+        for dimensions in range(np.random.randint(3,15)): 
+            vertex.append(( imshape[1]*np.random.uniform(),imshape[0]//3+imshape[0]*np.random.uniform()))
+        vertices = np.array([vertex], dtype=np.int32)      
+        vertices_list.append(vertices)    
+        return vertices_list
+    
+def augument(image, steering_angle):
+    """
+    Generate an random augumented image
+    """
+    random_value = np.random.randint(0, 4)
+    if random_value == 0:
+        image = random_brightness(image)
+    if random_value == 1:
+        image, steering_angle = random_flip(image, steering_angle)
+    if random_value == 2:
+        image, steering_angle = random_translate(image, steering_angle)
+    if random_value == 3:
+        image = random_shadow(image)
     return image, steering_angle
 
 
 # Data Generator
-
-class DataGenerator(Sequence):    
+class DataGenerator(Sequence):
+    """
+    Data Generator with multiprocessing support.
+    """
     def __init__(self, images, angles, data_dir, dim=(66, 200), batch_size=32, n_channels=3,
-                 n_classes=1, shuffle=True, testing=False, training=False):
+                 n_classes=1, shuffle=True, training=False):
 
         self.dim = dim
         self.training = training
-        self.testing = testing
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.angles = angles
@@ -152,14 +166,14 @@ class DataGenerator(Sequence):
             img_file = preprocess_image(load_image(self.data_dir, ID))
             
             if self.training:
-                if np.random.randn() < 0.6:
+                if np.random.randn() < 0.3:
                     X[i] = img_file / 255.
                     y[i] = self.angles[ID]
                 else:
                     aug_image, aug_angle = augument(img_file, self.angles[ID])
                     X[i] = aug_image / 255.
                     y[i] = aug_angle
-            if self.testing:
+            else:
                 X[i] = img_file / 255.
                 y[i] = self.angles[ID]
         return X, y
