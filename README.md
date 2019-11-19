@@ -48,8 +48,8 @@ Here's the architecture of the model,
 ### Quick Start
 
 1) First, install all the required dependencies from `requirements.txt` then download and extract the dataset into the main directory.
-2) Now run `python train_model.py`for training the model. After N-Epoch successful training, this will output a file `model-best.h5` (i.e epoch with least MSE on validation set).
-3) Then test and visualize it on test set with `python visualize.py`.
+2) Now run `python train_model.py`for training the model. After successful n-epochs training, this will save best models in the format of `model-best-{epoch_no}.h5` (i.e epochs with least MSE on validation set).
+3) Then load the saved model, test and visualize no test-set with `python visualize.py`.
 
 ### References:
  
